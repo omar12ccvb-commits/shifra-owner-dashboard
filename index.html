@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SHIFRA — لوحة المالك</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0f;
+    --bg-elev:#131318;
+    --bg-elev-2:#1c1c24;
+    --border:#28282f;
+    --border-soft:#1e1e25;
+    --text:#f5f4f7;
+    --text-dim:#9d9aa8;
+    --text-faint:#6b6875;
+    --purple:#8b5cf6;
+    --purple-hover:#7c3aed;
+    --purple-soft:rgba(139,92,246,0.14);
+    --purple-soft-2:rgba(139,92,246,0.28);
+    --green:#34d399; --green-soft:rgba(52,211,153,0.14);
+    --red:#f87171; --red-soft:rgba(248,113,113,0.14);
+    --amber:#fbbf24; --amber-soft:rgba(251,191,36,0.14);
+    --blue:#60a5fa; --blue-soft:rgba(96,165,250,0.14);
+    --radius:12px;
+    --radius-sm:8px;
+    --font:'IBM Plex Sans Arabic', sans-serif;
+    --mono:'IBM Plex Mono', monospace;
+    --sidebar-w:252px;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--font);
+    font-size:14.5px; line-height:1.55; -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(139,92,246,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(96,165,250,0.05), transparent 60%);
+    background-attachment:fixed;
+  }
+  .ltr{ direction:ltr; unicode-bidi:isolate; font-family:var(--mono); }
+  a{ color:inherit; }
+  button{ font-family:inherit; cursor:pointer; }
+  ::selection{ background:var(--purple-soft-2); }
+
+  /* ---------- Login ---------- */
+  #login-screen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .login-card{
+    width:100%; max-width:400px; background:var(--bg-elev); border:1px solid var(--border);
+    border-radius:16px; padding:36px 32px; animation:rise .5s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:28px; }
+  .brand-mark{
+    width:38px; height:38px; border-radius:10px; background:linear-gradient(155deg, var(--purple), #5b21b6);
+    display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:600;
+    font-size:15px; color:#fff; flex-shrink:0; box-shadow:0 4px 20px -4px rgba(139,92,246,0.5);
+  }
+  .brand-text{ font-weight:700; font-size:19px; letter-spacing:.2px; }
+  .brand-sub{ color:var(--text-faint); font-size:12px; font-family:var(--mono); direction:ltr; }
+  .field{ margin-bottom:16px; }
+  .field label{ display:block; font-size:12.5px; color:var(--text-dim); margin-bottom:7px; }
+  .field input{
+    width:100%; background:var(--bg-elev-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-sm); padding:11px 13px; font-size:14px; font-family:inherit; outline:none;
+    transition:border-color .15s;
+  }
+  .field input:focus{ border-color:var(--purple); }
+  .field-hint{ font-size:11.5px; color:var(--text-faint); margin-top:6px; direction:ltr; text-align:end; }
+  .btn{
+    border:none; border-radius:var(--radius-sm); padding:11px 18px; font-size:14px; font-weight:600;
+    transition:filter .15s, transform .1s;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn-primary{ background:var(--purple); color:#fff; width:100%; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-ghost{ background:transparent; color:var(--text-dim); border:1px solid var(--border); }
+  .btn-ghost:hover{ color:var(--text); border-color:var(--text-faint); }
+  .btn-sm{ padding:7px 12px; font-size:12.5px; border-radius:7px; }
+  .btn-danger{ background:var(--red-soft); color:var(--red); border:1px solid rgba(248,113,113,.3); }
+  .btn-danger:hover{ filter:brightness(1.15); }
+  .login-error{
+    background:var(--red-soft); color:var(--red); border:1px solid rgba(248,113,113,.3);
+    border-radius:var(--radius-sm); padding:10px 12px; font-size:13px; margin-bottom:16px; display:none;
+  }
+
+  /* ---------- App shell ---------- */
+  #app-shell{ display:none; min-height:100vh; }
+  #app-shell.active{ display:flex; }
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0; border-inline-start:1px solid var(--border);
+    display:flex; flex-direction:column; padding:20px 14px; position:sticky; top:0; height:100vh;
+  }
+  .sidebar .brand{ padding:0 8px; margin-bottom:22px; }
+  .nav-section-label{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.6px; padding:14px 12px 6px; }
+  .nav-item{
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--radius-sm);
+    color:var(--text-dim); font-size:13.5px; font-weight:500; background:transparent; border:none;
+    width:100%; text-align:start; transition:background .12s, color .12s; position:relative;
+  }
+  .nav-item .ic{ width:18px; text-align:center; flex-shrink:0; font-size:15px; }
+  .nav-item:hover{ background:var(--bg-elev); color:var(--text); }
+  .nav-item.active{ background:var(--purple-soft); color:#e4d9ff; }
+  .nav-item .badge-count{
+    margin-inline-start:auto; background:var(--red); color:#fff; font-size:10.5px; font-weight:700;
+    border-radius:99px; padding:1px 6px; font-family:var(--mono);
+  }
+  .sidebar-footer{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border-soft); }
+  .user-chip{ display:flex; align-items:center; gap:10px; padding:8px 10px; }
+  .user-avatar{
+    width:32px; height:32px; border-radius:50%; background:var(--bg-elev-2); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; flex-shrink:0;
+  }
+  .user-name{ font-size:13px; font-weight:600; }
+  .user-role{ font-size:11px; color:var(--text-faint); font-family:var(--mono); direction:ltr; text-align:start; }
+
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; padding:20px 32px;
+    border-bottom:1px solid var(--border-soft); flex-wrap:wrap; gap:12px;
+  }
+  .page-title{ font-size:20px; font-weight:700; }
+  .page-sub{ font-size:12.5px; color:var(--text-faint); margin-top:3px; }
+  .content{ padding:24px 32px 100px; flex:1; }
+  .view{ display:none; animation:fadeup .35s cubic-bezier(.16,1,.3,1); }
+  .view.active{ display:block; }
+  @keyframes fadeup{ from{ opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  /* ---------- Components ---------- */
+  .grid{ display:grid; gap:16px; }
+  .grid-4{ grid-template-columns:repeat(4,1fr); }
+  .grid-2{ grid-template-columns:repeat(2,1fr); }
+  @media (max-width:1000px){ .grid-4{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:600px){ .grid-4,.grid-2{grid-template-columns:1fr;} }
+
+  .card{ background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius); padding:18px; }
+  .stat-card .stat-label{ font-size:12px; color:var(--text-dim); display:flex; align-items:center; gap:6px; }
+  .stat-card .stat-value{ font-family:var(--mono); font-size:27px; font-weight:600; margin-top:10px; direction:ltr; text-align:start; }
+  .stat-card.warn .stat-value{ color:var(--amber); }
+  .stat-card.danger .stat-value{ color:var(--red); }
+  .stat-card.ok .stat-value{ color:var(--green); }
+
+  .alert-row{
+    display:flex; align-items:center; gap:12px; padding:13px 16px; border-radius:var(--radius-sm);
+    border:1px solid var(--border); background:var(--bg-elev); margin-bottom:10px; cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .alert-row:hover{ border-color:var(--purple); background:var(--bg-elev-2); }
+  .alert-dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .alert-text{ flex:1; font-size:13.5px; }
+  .alert-text b{ font-family:var(--mono); direction:ltr; display:inline-block; }
+  .alert-arrow{ color:var(--text-faint); font-size:13px; }
+  .empty-state{ text-align:center; padding:50px 20px; color:var(--text-faint); }
+  .empty-state .ic{ font-size:30px; margin-bottom:10px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th{
+    text-align:start; color:var(--text-faint); font-weight:600; font-size:11.5px; text-transform:uppercase;
+    letter-spacing:.4px; padding:0 14px 10px; border-bottom:1px solid var(--border);
+  }
+  td{ padding:13px 14px; border-bottom:1px solid var(--border-soft); vertical-align:middle; }
+  tr:last-child td{ border-bottom:none; }
+  tbody tr{ transition:background .12s; }
+  tbody tr.clickable{ cursor:pointer; }
+  tbody tr.clickable:hover{ background:var(--bg-elev-2); }
+  .mono{ font-family:var(--mono); direction:ltr; unicode-bidi:isolate; }
+  .table-wrap{ background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; overflow-x:auto; }
+  .table-wrap table{ min-width:600px; }
+  .table-toolbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap; }
+  select, .table-toolbar input{
+    background:var(--bg-elev-2); border:1px solid var(--border); color:var(--text); border-radius:var(--radius-sm);
+    padding:8px 10px; font-size:13px; font-family:inherit; outline:none;
+  }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:99px; font-size:11.5px;
+    font-weight:600; white-space:nowrap;
+  }
+  .badge-purple{ background:var(--purple-soft); color:#cbb6ff; }
+  .badge-green{ background:var(--green-soft); color:var(--green); }
+  .badge-red{ background:var(--red-soft); color:var(--red); }
+  .badge-amber{ background:var(--amber-soft); color:var(--amber); }
+  .badge-blue{ background:var(--blue-soft); color:var(--blue); }
+  .badge-gray{ background:var(--bg-elev-2); color:var(--text-dim); border:1px solid var(--border); }
+
+  .section-title{ font-size:15px; font-weight:700; margin:28px 0 14px; }
+  .section-title:first-child{ margin-top:0; }
+  .kv{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border-soft); font-size:13px; }
+  .kv:last-child{ border-bottom:none; }
+  .kv .k{ color:var(--text-dim); }
+  .kv .v{ font-weight:600; }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center;
+    z-index:50; padding:20px; backdrop-filter:blur(2px);
+  }
+  .modal-overlay.active{ display:flex; }
+  .modal{
+    background:var(--bg-elev); border:1px solid var(--border); border-radius:14px; padding:26px;
+    width:100%; max-width:440px; animation:rise .3s cubic-bezier(.16,1,.3,1);
+  }
+  .modal h3{ font-size:16px; margin-bottom:16px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:20px; }
+  .modal-actions .btn{ flex:1; }
+  textarea{
+    width:100%; background:var(--bg-elev-2); border:1px solid var(--border); color:var(--text);
+    border-radius:var(--radius-sm); padding:10px; font-family:inherit; font-size:13.5px; resize:vertical; min-height:70px; outline:none;
+  }
+  .toast{
+    position:fixed; bottom:24px; inset-inline-end:24px; background:var(--bg-elev-2); border:1px solid var(--border);
+    padding:13px 18px; border-radius:var(--radius-sm); font-size:13.5px; z-index:100; box-shadow:0 10px 30px -8px rgba(0,0,0,.5);
+    animation:rise .25s cubic-bezier(.16,1,.3,1); max-width:320px;
+  }
+  .toast.err{ border-color:rgba(248,113,113,.4); color:#fecaca; }
+  .toast.ok{ border-color:rgba(52,211,153,.4); color:#bbf7d0; }
+  .spinner{
+    width:16px; height:16px; border:2px solid rgba(255,255,255,.2); border-top-color:#fff; border-radius:50%;
+    display:inline-block; animation:spin .7s linear infinite; vertical-align:middle;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-row{ padding:40px; text-align:center; color:var(--text-faint); }
+  .backlink{ display:inline-flex; align-items:center; gap:6px; color:var(--text-dim); font-size:13px; margin-bottom:16px; }
+  .backlink:hover{ color:var(--purple); }
+
+  /* ---------- Mobile ---------- */
+  .mobile-topbar{ display:none; }
+  @media (max-width:880px){
+    .sidebar{ position:fixed; bottom:0; top:auto; width:100%; height:auto; flex-direction:row;
+      border-inline-start:none; border-top:1px solid var(--border); padding:8px 6px;
+      justify-content:space-around; z-index:40; background:var(--bg); gap:2px; overflow-x:auto; }
+    .sidebar .brand, .nav-section-label, .sidebar-footer{ display:none; }
+    .nav-item{ flex-direction:column; gap:3px; padding:8px 10px; font-size:10.5px; flex-shrink:0; width:auto; text-align:center; }
+    .nav-item .ic{ font-size:18px; }
+    .content{ padding:18px 16px 90px; }
+    .topbar{ padding:16px; }
+    .mobile-topbar{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border-soft); }
+  }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-mark">ش</div>
+      <div>
+        <div class="brand-text">SHIFRA</div>
+        <div class="brand-sub">OWNER CONSOLE</div>
+      </div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <form id="login-form">
+      <div class="field">
+        <label>البريد الإلكتروني أو الهاتف</label>
+        <input type="text" id="login-identifier" class="ltr" placeholder="omar@shifra.internal" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>كلمة المرور</label>
+        <input type="password" id="login-password" class="ltr" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label>عنوان السيرفر (API Base URL)</label>
+        <input type="text" id="login-apibase" class="ltr" value="http://localhost:4000/api">
+        <div class="field-hint">owner accounts only</div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="login-submit">دخول</button>
+    </form>
+  </div>
+</div>
+
+<div id="app-shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">ش</div>
+      <div>
+        <div class="brand-text" style="font-size:16px">SHIFRA</div>
+        <div class="brand-sub" style="font-size:10.5px">OWNER CONSOLE</div>
+      </div>
+    </div>
+    <div id="nav-list"></div>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">—</div>
+          <div class="user-role" id="user-role">—</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" style="width:100%; margin-top:10px;">تسجيل الخروج</button>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="mobile-topbar">
+      <div class="brand-text" style="font-size:15px">SHIFRA</div>
+      <button class="btn btn-ghost btn-sm" id="logout-btn-mobile">خروج</button>
+    </div>
+    <div class="topbar">
+      <div>
+        <div class="page-title" id="page-title">نظرة عامة</div>
+        <div class="page-sub" id="page-sub"></div>
+      </div>
+      <div id="topbar-actions"></div>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal-inner"></div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+/* ============================================================
+   SHIFRA Owner Console — talks to the REAL backend only.
+   No cached numbers, no mock data: every view fetches from the
+   live API each time it's opened (spec #54 "Database-backed KPIs").
+   Session token lives in memory only (not localStorage) — closing
+   the tab requires logging back in, which is the right trade-off
+   for a console that can confirm real money movements.
+   ============================================================ */
+const state = { token:null, user:null, apiBase:'http://localhost:4000/api', view:'overview', cache:{} };
+
+// Same smart default as the main app: deployed anywhere other than localhost,
+// assume /api lives on this same origin (nginx reverse-proxy setup) -- still
+// a plain editable field either way.
+(function setSmartApiDefault(){
+  const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
+  const guess = isLocal ? 'http://localhost:4000/api' : 'https://api-production-2964.up.railway.app/api';
+  state.apiBase = guess;
+  document.getElementById('login-apibase').value = guess;
+})();
+
+function toast(msg, kind){
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' '+kind : '');
+  el.textContent = msg;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(()=> el.remove(), 4200);
+}
+
+async function api(path, opts={}){
+  const res = await fetch(state.apiBase + path, {
+    method: opts.method || 'GET',
+    headers: Object.assign({'Content-Type':'application/json'}, state.token ? {Authorization:'Bearer '+state.token} : {}),
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  }).catch(()=>{ throw new Error('تعذر الوصول للسيرفر — تأكد إن الباك إند شغال على ' + state.apiBase); });
+  let json = {};
+  try { json = await res.json(); } catch(e) {}
+  if(!res.ok){
+    if(res.status === 401){ doLogout(); }
+    throw new Error((json.error && json.error.message) || ('HTTP ' + res.status));
+  }
+  return json;
+}
+
+const money = (minor) => (Number(minor)/100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = (d) => d ? new Date(d).toLocaleString('ar-EG', {dateStyle:'medium', timeStyle:'short'}) : '—';
+function esc(s){ const d=document.createElement('div'); d.textContent = (s===null||s===undefined)?'':s; return d.innerHTML; }
+
+const STATUS_BADGE = {
+  NEW:'gray', CLIENT_ASSIGNED:'gray', DETAILS_COLLECTED:'gray', PRICE_NEGOTIATION:'amber',
+  PRICE_ACCEPTED:'blue', PRICE_LOCKED:'blue', PAYMENT_PENDING:'amber', PAYMENT_CONFIRMED:'blue',
+  EDITOR_ASSIGNED:'purple', IN_PRODUCTION:'purple', PREVIEW_READY:'purple', REVISION_REQUESTED:'amber',
+  FINAL_APPROVED:'blue', READY_FOR_DELIVERY:'blue', DELIVERED:'green', ELIGIBLE_FOR_SETTLEMENT:'green',
+  REJECTED:'red', CANCELLED:'red', PAYMENT_FAILED:'red', REVIEW_REQUIRED:'red', REFUNDED:'red',
+  PENDING:'gray', PROOF_SUBMITTED:'amber', CONFIRMED:'green', PROOF_REJECTED:'red', FAILED:'red',
+  READY:'blue', PROCESSING:'blue', PAID:'green', OPEN:'amber', CLOSED:'gray',
+};
+function badge(status){ return `<span class="badge badge-${STATUS_BADGE[status]||'gray'}">${esc(status)}</span>`; }
+
+function modal(html){
+  document.getElementById('modal-inner').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('active');
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('active'); }
+document.getElementById('modal-overlay').addEventListener('click', (e)=>{ if(e.target.id==='modal-overlay') closeModal(); });
+
+/* ---------------- Auth ---------------- */
+document.getElementById('login-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const btn = document.getElementById('login-submit');
+  const errBox = document.getElementById('login-error');
+  errBox.style.display = 'none';
+  state.apiBase = document.getElementById('login-apibase').value.trim().replace(/\/$/,'');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try{
+    const identifier = document.getElementById('login-identifier').value.trim();
+    const password = document.getElementById('login-password').value;
+    const { token } = await api('/auth/login', { method:'POST', body:{identifier, password} });
+    state.token = token;
+    const me = await api('/auth/me');
+    if(me.user.role !== 'OWNER'){ throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
+    state.user = me.user;
+    enterApp();
+  }catch(err){
+    errBox.textContent = err.message; errBox.style.display = 'block';
+  }finally{
+    btn.disabled = false; btn.textContent = 'دخول';
+  }
+});
+
+function doLogout(){
+  state.token = null; state.user = null;
+  document.getElementById('app-shell').classList.remove('active');
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+}
+document.getElementById('logout-btn').addEventListener('click', doLogout);
+document.getElementById('logout-btn-mobile').addEventListener('click', doLogout);
+
+function enterApp(){
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').classList.add('active');
+  document.getElementById('user-name').textContent = state.user.fullName;
+  document.getElementById('user-avatar').textContent = state.user.fullName.slice(0,1);
+  document.getElementById('user-role').textContent = state.user.ownerKey || state.user.role;
+  renderNav();
+  goView('overview');
+}
+
+/* ---------------- Nav / Router ---------------- */
+const NAV = [
+  {id:'overview', label:'نظرة عامة', icon:'◆'},
+  {id:'payments', label:'إثباتات الدفع', icon:'▤'},
+  {id:'projects', label:'المشاريع', icon:'▦'},
+  {id:'ledger', label:'الحسابات (Ledger)', icon:'≡'},
+  {id:'payouts', label:'المستحقات (Payouts)', icon:'⇄'},
+  {id:'profitsplit', label:'توزيع الأرباح', icon:'%'},
+  {id:'weekly', label:'الدورة الأسبوعية', icon:'◷'},
+  {id:'audit', label:'سجل التدقيق', icon:'▧'},
+];
+function renderNav(){
+  document.getElementById('nav-list').innerHTML = NAV.map(n =>
+    `<button class="nav-item" data-view="${n.id}"><span class="ic">${n.icon}</span>${esc(n.label)}</button>`
+  ).join('');
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click', ()=> goView(btn.dataset.view));
+  });
+}
+const VIEW_META = {
+  overview:{title:'نظرة عامة', sub:'أهم القرارات اللي محتاجة انتباهك دلوقتي'},
+  payments:{title:'إثباتات الدفع', sub:'مراجعة وتأكيد مدفوعات Vodafone Cash'},
+  projects:{title:'المشاريع', sub:'كل الطلبات بأرقامها SH-####'},
+  ledger:{title:'الحسابات (Ledger)', sub:'أرصدة حقيقية من القيود المزدوجة، مش أرقام مخزّنة'},
+  payouts:{title:'المستحقات (Payouts)', sub:'صرف مستحقات المسوقين والمحررين والملّاك'},
+  profitsplit:{title:'توزيع الأرباح', sub:'النسب الحالية والتاريخ'},
+  weekly:{title:'الدورة الأسبوعية', sub:'السبت إلى الجمعة'},
+  audit:{title:'سجل التدقيق', sub:'كل عملية حساسة، بمن قام بها ومتى'},
+};
+async function goView(id){
+  state.view = id;
+  document.querySelectorAll('.nav-item').forEach(b=> b.classList.toggle('active', b.dataset.view===id));
+  document.getElementById('page-title').textContent = VIEW_META[id].title;
+  document.getElementById('page-sub').textContent = VIEW_META[id].sub;
+  document.getElementById('topbar-actions').innerHTML = '';
+  const content = document.getElementById('content');
+  // Fresh entry into a section should never inherit a stale drill-down/filter
+  // from a previous visit -- innerHTML resets below don't clear data-* attrs.
+  delete content.dataset.detail;
+  delete content.dataset.filter;
+  content.innerHTML = '<div class="loading-row"><span class="spinner"></span> جارِ التحميل...</div>';
+  try{
+    await RENDERERS[id](content);
+  }catch(err){
+    content.innerHTML = `<div class="empty-state"><div class="ic">⚠</div>${esc(err.message)}</div>`;
+  }
+}
+const RENDERERS = {}; // filled in below, one per view
+
+/* ================= OVERVIEW ================= */
+RENDERERS.overview = async (el) => {
+  const [payments, payouts, projects, cycle] = await Promise.all([
+    api('/payments?status=PROOF_SUBMITTED'),
+    api('/payouts'),
+    api('/projects'),
+    api('/weekly-cycles/current'),
+  ]);
+  const pendingProofs = payments.payments.length;
+  const readyPayouts = payouts.payouts.filter(p => ['PENDING','READY'].includes(p.status)).length;
+  const failedPayouts = payouts.payouts.filter(p => ['FAILED','REVIEW_REQUIRED'].includes(p.status)).length;
+  const now = new Date();
+  const terminal = ['DELIVERED','ELIGIBLE_FOR_SETTLEMENT','CANCELLED','REJECTED','REFUNDED'];
+  const overdue = projects.projects.filter(p => p.deadline && new Date(p.deadline) < now && !terminal.includes(p.status));
+  const active = projects.projects.filter(p => !terminal.includes(p.status) && !['CANCELLED','REJECTED'].includes(p.status));
+
+  let recon = null;
+  try { recon = await api(`/weekly-cycles/${cycle.cycle.id}/reconciliation`); } catch(e) {}
+
+  const alerts = [];
+  if (pendingProofs > 0) alerts.push({dot:'red', text:`<b>${pendingProofs}</b> إثبات دفع محتاج مراجعة`, view:'payments'});
+  if (readyPayouts > 0) alerts.push({dot:'amber', text:`<b>${readyPayouts}</b> مستحق جاهز للصرف`, view:'payouts'});
+  if (failedPayouts > 0) alerts.push({dot:'red', text:`<b>${failedPayouts}</b> صرف فشل أو محتاج مراجعة`, view:'payouts'});
+  if (overdue.length > 0) alerts.push({dot:'red', text:`<b>${overdue.length}</b> مشروع متأخر عن الديدلاين`, view:'projects'});
+  if (recon && recon.result === 'MISMATCH') alerts.push({dot:'amber', text:`Mismatch مالي في الدورة الحالية (فرق ${money(Math.abs(recon.differenceMinor))} EGP)`, view:'weekly'});
+
+  el.innerHTML = `
+    <div class="grid grid-4" style="margin-bottom:26px">
+      <div class="card stat-card"><div class="stat-label">مشاريع نشطة</div><div class="stat-value">${active.length}</div></div>
+      <div class="card stat-card ${pendingProofs?'warn':'ok'}"><div class="stat-label">إثباتات دفع تنتظر المراجعة</div><div class="stat-value">${pendingProofs}</div></div>
+      <div class="card stat-card ${readyPayouts?'warn':'ok'}"><div class="stat-label">مستحقات جاهزة للصرف</div><div class="stat-value">${readyPayouts}</div></div>
+      <div class="card stat-card"><div class="stat-label">الدورة الحالية</div><div class="stat-value" style="font-size:16px">${esc(cycle.cycle.cycle_start)} → ${esc(cycle.cycle.cycle_end)}</div></div>
+    </div>
+    <div class="section-title">يحتاج انتباهك</div>
+    <div id="alerts-list"></div>
+  `;
+  const list = document.getElementById('alerts-list');
+  if (alerts.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="ic">✓</div>كل حاجة تمام — مفيش حاجة محتاجة تدخّل دلوقتي.</div>`;
+  } else {
+    list.innerHTML = alerts.map(a => `
+      <div class="alert-row" data-view="${a.view}">
+        <span class="alert-dot" style="background:var(--${a.dot})"></span>
+        <span class="alert-text">${a.text}</span>
+        <span class="alert-arrow">‹</span>
+      </div>`).join('');
+    list.querySelectorAll('.alert-row').forEach(row => row.addEventListener('click', () => goView(row.dataset.view)));
+  }
+};
+
+/* ================= PAYMENT PROOFS QUEUE ================= */
+RENDERERS.payments = async (el) => {
+  const isYoussef = state.user.ownerKey === 'YOUSSEF';
+  const filterVal = el.dataset.filter || 'PROOF_SUBMITTED';
+  const { payments } = await api('/payments?status=' + filterVal);
+
+  el.innerHTML = `
+    <div class="table-toolbar">
+      <select id="pay-filter">
+        <option value="PROOF_SUBMITTED">بانتظار المراجعة</option>
+        <option value="CONFIRMED">مؤكدة</option>
+        <option value="PROOF_REJECTED">إثبات مرفوض</option>
+        <option value="PENDING">بانتظار العميل</option>
+      </select>
+      ${!isYoussef ? '<span class="badge badge-gray">مراجعة الدفع من صلاحيات يوسف فقط — تقدر تشوف بس</span>' : ''}
+    </div>
+    <div class="table-wrap" id="pay-table"></div>
+  `;
+  document.getElementById('pay-filter').value = filterVal;
+  document.getElementById('pay-filter').addEventListener('change', (e) => {
+    el.dataset.filter = e.target.value; RENDERERS.payments(el);
+  });
+
+  const wrap = document.getElementById('pay-table');
+  if (!payments.length) { wrap.outerHTML = `<div class="empty-state"><div class="ic">✓</div>مفيش حاجة هنا حاليًا</div>`; return; }
+
+  wrap.innerHTML = `<table><thead><tr>
+      <th>المشروع</th><th>العميل</th><th>المبلغ</th><th>مرجع الإثبات</th><th>الحالة</th><th></th>
+    </tr></thead><tbody>${payments.map(p => `
+      <tr>
+        <td class="mono">${esc(p.order_number)}</td>
+        <td>${esc(p.customer_name)}</td>
+        <td class="mono">${money(p.expected_amount_minor)} EGP</td>
+        <td class="mono">${esc(p.latest_proof_reference || '—')}</td>
+        <td>${badge(p.status)}</td>
+        <td style="white-space:nowrap">
+          ${isYoussef && p.status === 'PROOF_SUBMITTED' ? `
+            <button class="btn btn-sm btn-primary" data-verify="${p.id}">تأكيد</button>
+            <button class="btn btn-sm btn-danger" data-reject="${p.id}">رفض</button>
+          ` : ''}
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+
+  wrap.querySelectorAll('[data-verify]').forEach(btn => btn.addEventListener('click', async () => {
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    try { await api(`/payments/${btn.dataset.verify}/verify`, {method:'POST'}); toast('تم تأكيد الدفع','ok'); RENDERERS.payments(el); }
+    catch(err){ toast(err.message,'err'); btn.disabled = false; btn.textContent = 'تأكيد'; }
+  }));
+  wrap.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => {
+    modal(`<h3>سبب رفض الإثبات</h3><textarea id="reject-reason" placeholder="اكتب السبب..."></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+        <button class="btn btn-danger" id="confirm-reject">تأكيد الرفض</button>
+      </div>`);
+    document.getElementById('confirm-reject').addEventListener('click', async () => {
+      const reason = document.getElementById('reject-reason').value.trim();
+      if (!reason) { toast('لازم تكتب سبب','err'); return; }
+      try { await api(`/payments/${btn.dataset.reject}/reject`, {method:'POST', body:{reason}}); closeModal(); toast('تم رفض الإثبات','ok'); RENDERERS.payments(el); }
+      catch(err){ toast(err.message,'err'); }
+    });
+  }));
+};
+
+/* ================= PROJECTS ================= */
+RENDERERS.projects = async (el) => {
+  if (el.dataset.detail) return renderProjectDetail(el, el.dataset.detail);
+  const filterVal = el.dataset.filter || '';
+  const { projects } = await api('/projects' + (filterVal ? '?status='+filterVal : ''));
+
+  el.innerHTML = `
+    <div class="table-toolbar">
+      <select id="proj-filter">
+        <option value="">كل الحالات</option>
+        ${Object.keys(STATUS_BADGE).filter((v,i,a)=>a.indexOf(v)===i).map(s=>`<option value="${s}">${s}</option>`).join('')}
+      </select>
+      <span class="badge badge-gray">${projects.length} مشروع</span>
+    </div>
+    <div class="table-wrap" id="proj-table"></div>
+  `;
+  document.getElementById('proj-filter').value = filterVal;
+  document.getElementById('proj-filter').addEventListener('change', (e)=>{ el.dataset.filter = e.target.value; RENDERERS.projects(el); });
+
+  const wrap = document.getElementById('proj-table');
+  if (!projects.length) { wrap.outerHTML = `<div class="empty-state"><div class="ic">▦</div>مفيش مشاريع بالفلتر ده</div>`; return; }
+  wrap.innerHTML = `<table><thead><tr><th>الرقم</th><th>الحالة</th><th>الكمية</th><th>الديدلاين</th><th>آخر تحديث</th></tr></thead>
+    <tbody>${projects.map(p => `
+      <tr class="clickable" data-id="${p.id}">
+        <td class="mono">${esc(p.order_number)}</td>
+        <td>${badge(p.status)}</td>
+        <td class="mono">${esc(p.quantity)}</td>
+        <td class="mono">${p.deadline ? fmtDate(p.deadline) : '—'}</td>
+        <td class="mono">${fmtDate(p.updated_at)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  wrap.querySelectorAll('tr[data-id]').forEach(row => row.addEventListener('click', () => {
+    el.dataset.detail = row.dataset.id; RENDERERS.projects(el);
+  }));
+};
+
+async function renderProjectDetail(el, id) {
+  const [{project}, priceRes, earningsRes, paymentsRes] = await Promise.all([
+    api(`/projects/${id}`), api(`/projects/${id}/price-agreements`), api(`/projects/${id}/earnings`), api(`/projects/${id}/payments`),
+  ]);
+  el.innerHTML = `
+    <a class="backlink" href="#" id="back-to-list">‹ رجوع لكل المشاريع</a>
+    <div class="grid grid-2" style="align-items:start">
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+          <span class="mono" style="font-size:17px; font-weight:700">${esc(project.order_number)}</span>
+          ${badge(project.status)}
+        </div>
+        <div class="kv"><span class="k">الكمية</span><span class="v mono">${esc(project.quantity)}</span></div>
+        <div class="kv"><span class="k">المدة</span><span class="v mono">${project.duration_seconds ? project.duration_seconds+'s' : '—'}</span></div>
+        <div class="kv"><span class="k">الديدلاين</span><span class="v mono">${project.deadline ? fmtDate(project.deadline) : '—'}</span></div>
+        <div class="kv"><span class="k">آخر تحديث</span><span class="v mono">${fmtDate(project.updated_at)}</span></div>
+        <div class="kv"><span class="k">ملاحظات</span><span class="v">${esc(project.notes || '—')}</span></div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin-top:0">تاريخ السعر (versions)</div>
+        ${priceRes.priceAgreements.length ? priceRes.priceAgreements.map(a => `
+          <div class="kv"><span class="k">v${a.version} · ${badge(a.status)}</span>
+            <span class="v mono">${a.final_price_minor ? money(a.final_price_minor) : money(a.original_price_minor)} ${esc(a.currency)}</span></div>
+        `).join('') : '<div class="empty-state" style="padding:20px">لسه مفيش سعر مقترح</div>'}
+      </div>
+    </div>
+    <div class="section-title">المدفوعات</div>
+    <div class="table-wrap">${paymentsRes.payments.length ? `<table><thead><tr><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>تاريخ</th></tr></thead>
+      <tbody>${paymentsRes.payments.map(p=>`<tr><td class="mono">${money(p.expected_amount_minor)} ${esc(p.currency)}</td><td>${esc(p.method)}</td><td>${badge(p.status)}</td><td class="mono">${fmtDate(p.created_at)}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="empty-state" style="padding:24px">لسه مفيش مدفوعات</div>'}</div>
+    <div class="section-title">الأرباح الموزّعة (Earnings)</div>
+    <div class="table-wrap">${earningsRes.earnings.length ? `<table><thead><tr><th>المستفيد</th><th>المبلغ</th><th>مؤهل من</th></tr></thead>
+      <tbody>${earningsRes.earnings.map(e=>`<tr><td>${esc(e.recipient_type)}</td><td class="mono">${money(e.amount_minor)} EGP</td><td class="mono">${fmtDate(e.eligible_at)}</td></tr>`).join('')}</tbody></table>`
+      : '<div class="empty-state" style="padding:24px">لسه المشروع مامعملش Settle</div>'}</div>
+  `;
+  document.getElementById('back-to-list').addEventListener('click', (e)=>{ e.preventDefault(); delete el.dataset.detail; RENDERERS.projects(el); });
+}
+
+/* ================= LEDGER ================= */
+RENDERERS.ledger = async (el) => {
+  const [{balances}, {entries}] = await Promise.all([api('/ledger/accounts/balances'), api('/ledger/entries')]);
+  el.innerHTML = `
+    <div class="section-title" style="margin-top:0">الأرصدة — محسوبة من القيود مباشرة، مش مخزّنة (spec #105)</div>
+    <div class="grid grid-4" style="margin-bottom:26px">
+      ${balances.map(b => `
+        <div class="card stat-card">
+          <div class="stat-label">${esc(b.name)}</div>
+          <div class="stat-value" style="font-size:19px">${money(b.type==='LIABILITY'||b.type==='REVENUE'?b.net_credit_minor:b.net_debit_minor)} EGP</div>
+        </div>`).join('')}
+    </div>
+    <div class="section-title">آخر القيود</div>
+    <div class="table-wrap">${entries.length ? `<table><thead><tr><th>الحساب</th><th>مدين</th><th>دائن</th><th>المرجع</th><th>الوقت</th></tr></thead>
+      <tbody>${entries.map(e=>`<tr>
+        <td>${esc(e.account_code)}</td>
+        <td class="mono">${Number(e.debit_minor)?money(e.debit_minor):'—'}</td>
+        <td class="mono">${Number(e.credit_minor)?money(e.credit_minor):'—'}</td>
+        <td class="mono">${esc(e.reference_type)} #${esc(e.reference_id)}</td>
+        <td class="mono">${fmtDate(e.created_at)}</td>
+      </tr>`).join('')}</tbody></table>` : '<div class="empty-state" style="padding:24px">لسه مفيش قيود</div>'}</div>
+  `;
+};
+
+/* ================= PAYOUTS ================= */
+RENDERERS.payouts = async (el) => {
+  const isYoussef = state.user.ownerKey === 'YOUSSEF';
+  const cycleRes = await api('/weekly-cycles/current');
+  const cycleId = cycleRes.cycle.id;
+  const { payouts } = await api('/payouts?weeklyCycleId=' + cycleId);
+
+  document.getElementById('topbar-actions').innerHTML =
+    `<button class="btn btn-primary btn-sm" id="gen-payouts">تجميع مستحقات الدورة الحالية</button>`;
+  document.getElementById('gen-payouts').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try { const r = await api('/payouts/generate', {method:'POST', body:{weeklyCycleId: cycleId}});
+      toast(`${r.payouts.length} مستحق جديد اتضاف`, 'ok'); RENDERERS.payouts(el); }
+    catch(err){ toast(err.message, 'err'); e.target.disabled = false; }
+  });
+
+  el.innerHTML = `
+    <div class="badge badge-gray" style="margin-bottom:16px">الدورة: ${esc(cycleRes.cycle.cycle_start)} → ${esc(cycleRes.cycle.cycle_end)} · ${badge(cycleRes.cycle.status)}</div>
+    <div class="table-wrap" id="payouts-table"></div>
+  `;
+  const wrap = document.getElementById('payouts-table');
+  if (!payouts.length) { wrap.outerHTML = `<div class="empty-state"><div class="ic">⇄</div>لسه مفيش مستحقات للدورة دي — دوس "تجميع مستحقات الدورة الحالية"</div>`; return; }
+  wrap.innerHTML = `<table><thead><tr><th>المستفيد</th><th>النوع</th><th>المبلغ</th><th>الحالة</th><th>مرجع</th><th></th></tr></thead>
+    <tbody>${payouts.map(p => `
+      <tr>
+        <td class="mono">#${esc(p.recipient_user_id)}</td>
+        <td>${esc(p.recipient_type)}</td>
+        <td class="mono">${money(p.total_amount_minor)} EGP</td>
+        <td>${badge(p.status)}</td>
+        <td class="mono">${esc(p.reference || '—')}</td>
+        <td style="white-space:nowrap">
+          ${isYoussef && ['PENDING','READY','PROCESSING'].includes(p.status) ? `
+            <button class="btn btn-sm btn-primary" data-confirm="${p.id}">تأكيد الصرف</button>
+            <button class="btn btn-sm btn-danger" data-fail="${p.id}">فشل</button>` : ''}
+        </td>
+      </tr>`).join('')}</tbody></table>`;
+
+  wrap.querySelectorAll('[data-confirm]').forEach(btn => btn.addEventListener('click', () => {
+    modal(`<h3>تأكيد صرف مستحق</h3>
+      <div class="field"><label>مرجع التحويل (Vodafone Cash)</label><input type="text" id="payout-ref" class="ltr"></div>
+      <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+        <button class="btn btn-primary" id="confirm-payout-btn">تأكيد</button></div>`);
+    document.getElementById('confirm-payout-btn').addEventListener('click', async () => {
+      try { await api(`/payouts/${btn.dataset.confirm}/confirm`, {method:'POST', body:{reference: document.getElementById('payout-ref').value}});
+        closeModal(); toast('تم تأكيد الصرف','ok'); RENDERERS.payouts(el); }
+      catch(err){ toast(err.message,'err'); }
+    });
+  }));
+  wrap.querySelectorAll('[data-fail]').forEach(btn => btn.addEventListener('click', async () => {
+    try { await api(`/payouts/${btn.dataset.fail}/mark-failed`, {method:'POST', body:{notes:'Marked from dashboard'}}); toast('اتسجل كفاشل','ok'); RENDERERS.payouts(el); }
+    catch(err){ toast(err.message,'err'); }
+  }));
+};
+
+/* ================= PROFIT SPLIT ================= */
+RENDERERS.profitsplit = async (el) => {
+  const [{profitSplit}, {profitSplits}] = await Promise.all([api('/profit-split/active'), api('/profit-split')]);
+  el.innerHTML = `
+    <div class="grid grid-2" style="align-items:start">
+      <div class="card">
+        <div class="section-title" style="margin-top:0">النسخة الحالية (v${profitSplit?.version ?? '—'})</div>
+        <div class="kv"><span class="k">Client Hunter</span><span class="v mono">${profitSplit?.client_hunter_pct}%</span></div>
+        <div class="kv"><span class="k">Editor</span><span class="v mono">${profitSplit?.editor_pct}%</span></div>
+        <div class="kv"><span class="k">Omar</span><span class="v mono">${profitSplit?.owner_omar_pct}%</span></div>
+        <div class="kv"><span class="k">Youssef</span><span class="v mono">${profitSplit?.owner_youssef_pct}%</span></div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin-top:0">نسخة جديدة (لازم المجموع = 100%)</div>
+        <div class="field"><label>Client Hunter %</label><input type="number" id="sp-ch" class="ltr" value="10" step="0.01"></div>
+        <div class="field"><label>Editor %</label><input type="number" id="sp-ed" class="ltr" value="64" step="0.01"></div>
+        <div class="field"><label>Omar %</label><input type="number" id="sp-om" class="ltr" value="13" step="0.01"></div>
+        <div class="field"><label>Youssef %</label><input type="number" id="sp-yo" class="ltr" value="13" step="0.01"></div>
+        <button class="btn btn-primary" id="save-split">حفظ نسخة جديدة</button>
+      </div>
+    </div>
+    <div class="section-title">تاريخ النسخ</div>
+    <div class="table-wrap"><table><thead><tr><th>النسخة</th><th>Hunter</th><th>Editor</th><th>Omar</th><th>Youssef</th><th>الحالة</th></tr></thead>
+      <tbody>${profitSplits.map(s=>`<tr><td class="mono">v${s.version}</td><td class="mono">${s.client_hunter_pct}%</td><td class="mono">${s.editor_pct}%</td><td class="mono">${s.owner_omar_pct}%</td><td class="mono">${s.owner_youssef_pct}%</td><td>${s.is_active?badge('CONFIRMED'):'—'}</td></tr>`).join('')}</tbody></table></div>
+  `;
+  document.getElementById('save-split').addEventListener('click', async (e) => {
+    const vals = ['sp-ch','sp-ed','sp-om','sp-yo'].map(id => Number(document.getElementById(id).value));
+    const sum = vals.reduce((a,b)=>a+b,0);
+    if (Math.round(sum*100) !== 10000) { toast(`المجموع لازم يكون 100%، دلوقتي ${sum}%`, 'err'); return; }
+    e.target.disabled = true;
+    try {
+      await api('/profit-split', {method:'POST', body:{clientHunterPct:vals[0], editorPct:vals[1], ownerOmarPct:vals[2], ownerYoussefPct:vals[3]}});
+      toast('اتحفظت نسخة جديدة','ok'); RENDERERS.profitsplit(el);
+    } catch(err){ toast(err.message,'err'); e.target.disabled = false; }
+  });
+};
+
+/* ================= WEEKLY CYCLE ================= */
+RENDERERS.weekly = async (el) => {
+  const { cycle } = await api('/weekly-cycles/current');
+  const recon = await api(`/weekly-cycles/${cycle.id}/reconciliation`);
+  el.innerHTML = `
+    <div class="grid grid-2" style="align-items:start">
+      <div class="card">
+        <div class="section-title" style="margin-top:0">الدورة الحالية</div>
+        <div class="kv"><span class="k">من</span><span class="v mono">${esc(cycle.cycle_start)}</span></div>
+        <div class="kv"><span class="k">إلى</span><span class="v mono">${esc(cycle.cycle_end)}</span></div>
+        <div class="kv"><span class="k">الحالة</span><span class="v">${badge(cycle.status)}</span></div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin-top:0">المطابقة (Reconciliation)</div>
+        <div class="kv"><span class="k">متوقع (Earnings)</span><span class="v mono">${money(recon.expectedMinor)} EGP</span></div>
+        <div class="kv"><span class="k">فعلي (Paid)</span><span class="v mono">${money(recon.actualMinor)} EGP</span></div>
+        <div class="kv"><span class="k">النتيجة</span><span class="v">${badge(recon.result)}</span></div>
+      </div>
+    </div>
+    <div style="margin-top:20px">
+      <button class="btn btn-primary" id="close-week" ${cycle.status==='CLOSED'?'disabled':''}>${cycle.status==='CLOSED'?'الدورة مقفولة':'إقفال الدورة'}</button>
+    </div>
+  `;
+  document.getElementById('close-week').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try { await api(`/weekly-cycles/${cycle.id}/close`, {method:'POST'}); toast('اتقفلت الدورة','ok'); RENDERERS.weekly(el); }
+    catch(err){ toast(err.message,'err'); e.target.disabled = false; }
+  });
+};
+
+/* ================= AUDIT LOG ================= */
+RENDERERS.audit = async (el) => {
+  const { auditLogs } = await api('/audit-logs');
+  el.innerHTML = `<div class="table-wrap">${auditLogs.length ? `<table><thead><tr><th>الإجراء</th><th>الكيان</th><th>الفاعل</th><th>السبب</th><th>الوقت</th></tr></thead>
+    <tbody>${auditLogs.map(a=>`<tr>
+      <td>${esc(a.action)}</td>
+      <td class="mono">${esc(a.entity_type)} #${esc(a.entity_id)}</td>
+      <td class="mono">#${esc(a.actor_id)} (${esc(a.actor_role)})</td>
+      <td>${esc(a.reason || '—')}</td>
+      <td class="mono">${fmtDate(a.created_at)}</td>
+    </tr>`).join('')}</tbody></table>` : '<div class="empty-state" style="padding:24px">لسه مفيش سجلات</div>'}</div>`;
+};
+</script>
+</body>
+</html>
