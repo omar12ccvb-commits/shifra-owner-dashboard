@@ -293,14 +293,18 @@
           <div class="user-role" id="user-role">—</div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" id="logout-btn" style="width:100%; margin-top:10px;">تسجيل الخروج</button>
+      <button class="btn btn-ghost btn-sm" id="change-pw-btn" style="width:100%; margin-top:10px;">تغيير كلمة المرور</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" style="width:100%; margin-top:8px;">تسجيل الخروج</button>
     </div>
   </nav>
 
   <main class="main">
     <div class="mobile-topbar">
       <div class="brand-text" style="font-size:15px">SHIFRA</div>
-      <button class="btn btn-ghost btn-sm" id="logout-btn-mobile">خروج</button>
+      <div style="display:flex; gap:8px">
+        <button class="btn btn-ghost btn-sm" id="change-pw-btn-mobile">🔑</button>
+        <button class="btn btn-ghost btn-sm" id="logout-btn-mobile">خروج</button>
+      </div>
     </div>
     <div class="topbar">
       <div>
@@ -418,6 +422,30 @@ function doLogout(){
 }
 document.getElementById('logout-btn').addEventListener('click', doLogout);
 document.getElementById('logout-btn-mobile').addEventListener('click', doLogout);
+
+function openChangePasswordModal(){
+  modal(`<h3>تغيير كلمة المرور</h3>
+    <div class="field"><label>كلمة المرور الحالية</label><input type="password" id="cp-current" class="ltr"></div>
+    <div class="field"><label>كلمة المرور الجديدة (8 أحرف على الأقل)</label><input type="password" id="cp-new" class="ltr"></div>
+    <div class="field"><label>تأكيد كلمة المرور الجديدة</label><input type="password" id="cp-confirm" class="ltr"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-primary" id="cp-submit">تغيير</button></div>`);
+  document.getElementById('cp-submit').addEventListener('click', async (e) => {
+    const current = document.getElementById('cp-current').value;
+    const next = document.getElementById('cp-new').value;
+    const confirmVal = document.getElementById('cp-confirm').value;
+    if (!current || !next) { toast('املا الخانتين', 'err'); return; }
+    if (next.length < 8) { toast('كلمة المرور الجديدة لازم 8 أحرف على الأقل', 'err'); return; }
+    if (next !== confirmVal) { toast('كلمة المرور الجديدة والتأكيد مش متطابقين', 'err'); return; }
+    e.target.disabled = true;
+    try {
+      await api('/auth/change-password', {method:'POST', body:{currentPassword: current, newPassword: next}});
+      closeModal(); toast('اتغيّرت كلمة المرور بنجاح', 'ok');
+    } catch(err){ toast(err.message, 'err'); e.target.disabled = false; }
+  });
+}
+document.getElementById('change-pw-btn').addEventListener('click', openChangePasswordModal);
+document.getElementById('change-pw-btn-mobile').addEventListener('click', openChangePasswordModal);
 
 function enterApp(){
   document.getElementById('login-screen').style.display = 'none';
