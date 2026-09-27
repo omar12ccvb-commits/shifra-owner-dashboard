@@ -565,6 +565,7 @@ const NAV = [
   {id:'operations', label:'مركز العمليات 30+', icon:'⚙'},
   {id:'conversations', label:'المحادثات', icon:'💬'},
   {id:'payments', label:'إثباتات الدفع', icon:'▤'},
+  {id:'finalPayments', label:'التسليم النهائي', icon:'🎬'},
   {id:'projects', label:'المشاريع', icon:'▦'},
   {id:'complaints', label:'الشكاوى', icon:'⚠'},
   {id:'ledger', label:'الحسابات (Ledger)', icon:'≡'},
@@ -590,6 +591,7 @@ const VIEW_META = {
   operations:{title:'مركز العمليات 30+', sub:'أكثر من 30 أداة تشغيلية إضافية لكل من Omar وYoussef'},
   conversations:{title:'المحادثات', sub:'تواصل مباشر مع العملاء داخل كل مشروع'},
   payments:{title:'إثباتات الدفع', sub:'مراجعة وتأكيد مدفوعات Vodafone Cash'},
+  finalPayments:{title:'التسليم النهائي', sub:'معاينة آمنة → موافقة العميل → تسعير يوسف → دفع → إطلاق الفيديو الأصلي'},
   projects:{title:'المشاريع', sub:'كل الطلبات بأرقامها SH-####'},
   complaints:{title:'الشكاوى', sub:'مراجعة شكاوى العملاء واتخاذ الإجراء'},
   ledger:{title:'الحسابات (Ledger)', sub:'أرصدة حقيقية من القيود المزدوجة، مش أرقام مخزّنة'},
@@ -1176,6 +1178,84 @@ RENDERERS.payments = async (el) => {
       try { await api(`/payments/${btn.dataset.reject}/reject`, {method:'POST', body:{reason}}); closeModal(); toast('تم رفض الإثبات','ok'); RENDERERS.payments(el); }
       catch(err){ toast(err.message,'err'); }
     });
+  }));
+};
+
+/* ================= FINAL RELEASE PAYMENTS ================= */
+RENDERERS.finalPayments = async function(el){
+  const {cases}=await api('/release-payments');
+  const isYoussef=state.user.ownerKey==='YOUSSEF';
+  const statusLabel={
+    NEEDS_QUOTE:'يحتاج تسعير',
+    WAITING_PAYMENT:'بانتظار الدفع',
+    PROOF_SUBMITTED:'إثبات يحتاج مراجعة',
+    PAID:'مدفوع — إطلاق الأصل',
+    REJECTED:'مرفوض',
+    CANCELLED:'ملغى'
+  };
+  const waPhone=function(phone){
+    const d=String(phone||'').replace(/\D/g,'');
+    if(!d)return '';
+    if(d.startsWith('0'))return '20'+d.slice(1);
+    if(d.startsWith('20'))return d;
+    return d;
+  };
+  if(!cases.length){
+    el.innerHTML='<div class="empty-state"><div class="ic">🎬</div>مفيش حالات تسليم نهائي حالياً.</div>';
+    return;
+  }
+  el.innerHTML=
+    '<div class="card" style="margin-bottom:16px">'+
+      '<div style="font-weight:800;font-size:16px">بوابة التسليم الأصلّي</div>'+
+      '<div style="font-size:12px;color:var(--text-faint);margin-top:5px">الأصل لا يُطلق للمسوق إلا بعد تأكيد يوسف للدفع. كل حالة توضح العميل + المسوق + المونتير + ملخص المسوق.</div>'+
+      (!isYoussef?'<div style="margin-top:10px"><span class="badge badge-gray">إدارة فقط — تسعير وتأكيد الدفع من يوسف</span></div>':'')+
+    '</div>'+
+    '<div class="grid grid-2">'+cases.map(c=>{
+      const status=statusLabel[c.status]||c.status;
+      const phone=waPhone(c.marketer_phone);
+      const price=c.amount_minor?money(c.amount_minor)+' '+(c.currency||'EGP'):'لم يتحدد';
+      return '<div class="card" style="margin-bottom:14px">'+
+        '<div class="list-card-top"><span class="mono">'+esc(c.order_number)+'</span><span class="badge '+(c.status==='PAID'?'badge-green':c.status==='PROOF_SUBMITTED'?'badge-amber':'badge-purple')+'">'+esc(status)+'</span></div>'+
+        '<div class="kv"><span class="k">العميل</span><span class="v">'+esc(c.customer_name)+'</span></div>'+
+        '<div class="kv"><span class="k">المسوق المسؤول</span><span class="v">'+esc(c.marketer_name)+'</span></div>'+
+        '<div class="kv"><span class="k">المونتير المسؤول</span><span class="v">'+esc(c.editor_name)+'</span></div>'+
+        '<div class="kv"><span class="k">المبلغ</span><span class="v mono">'+price+'</span></div>'+
+        '<div class="kv"><span class="k">طريقة الدفع</span><span class="v">'+esc(c.method||'—')+'</span></div>'+
+        (c.proof_reference?'<div class="kv"><span class="k">مرجع الإثبات</span><span class="v mono">'+esc(c.proof_reference)+'</span></div>':'')+
+        '<div style="margin-top:10px;padding:10px;border-radius:10px;background:var(--bg-elev-2);font-size:12.5px"><b>ملخص المسوق:</b><br>'+esc(c.marketer_summary||'—')+'</div>'+
+        '<div class="btn-row" style="margin-top:11px;flex-wrap:wrap">'+
+          (phone?'<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="https://wa.me/'+phone+'?text='+encodeURIComponent('بخصوص المشروع '+c.order_number+' — التسليم النهائي')+'">WhatsApp المسوق</a>':'')+
+          (isYoussef && ['NEEDS_QUOTE','REJECTED'].includes(c.status)?'<button class="btn btn-primary btn-sm" data-release-quote="'+c.id+'">حدد المبلغ والطريقة</button>':'')+
+          (isYoussef && c.status==='PROOF_SUBMITTED'?'<button class="btn btn-primary btn-sm" data-release-verify="'+c.id+'">تأكيد استلام الدفع</button>':'')+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div>';
+
+  el.querySelectorAll('[data-release-quote]').forEach(btn=>btn.addEventListener('click',()=>{
+    const c=cases.find(x=>String(x.id)===String(btn.dataset.releaseQuote));
+    modal('<h3>تحديد الدفع النهائي — '+esc(c.order_number)+'</h3>'+
+      '<div class="field"><label>المبلغ EGP</label><input id="rp-amount" type="number" class="ltr" min="1"></div>'+
+      '<div class="field"><label>طريقة الدفع</label><input id="rp-method" placeholder="Vodafone Cash / InstaPay / تحويل بنكي / كاش"></div>'+
+      '<div class="field"><label>تعليمات الدفع</label><textarea id="rp-instructions" rows="3" placeholder="اكتب رقم التحويل أو تعليمات الدفع للعميل..."></textarea></div>'+
+      '<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-primary" id="rp-save">إرسال للعميل</button></div>');
+    document.getElementById('rp-save').addEventListener('click',async()=>{
+      const amount=Number(document.getElementById('rp-amount').value);
+      const method=document.getElementById('rp-method').value.trim();
+      const instructions=document.getElementById('rp-instructions').value.trim();
+      if(!amount||!method){toast('اكتب المبلغ وطريقة الدفع','err');return;}
+      try{
+        await api('/release-payments/'+c.id+'/quote',{method:'PATCH',body:{amountEgp:amount,method,instructions}});
+        closeModal();toast('اتبعت تفاصيل الدفع للعميل والمسوق','ok');RENDERERS.finalPayments(el);
+      }catch(err){toast(err.message,'err');}
+    });
+  }));
+
+  el.querySelectorAll('[data-release-verify]').forEach(btn=>btn.addEventListener('click',async()=>{
+    btn.disabled=true;
+    try{
+      await api('/release-payments/'+btn.dataset.releaseVerify+'/verify',{method:'POST'});
+      toast('تم تأكيد الدفع وإطلاق صلاحية الفيديو الأصلي للمونتير','ok');RENDERERS.finalPayments(el);
+    }catch(err){toast(err.message,'err');btn.disabled=false;}
   }));
 };
 
