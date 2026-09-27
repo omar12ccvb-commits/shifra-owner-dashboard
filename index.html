@@ -469,7 +469,7 @@ async function api(path, opts={}){
   let json = {};
   try { json = await res.json(); } catch(e) {}
   if(!res.ok){
-    if(res.status===401) doLogout();
+    if(res.status===401 && state.token) doLogout();
     throw new Error((json.error && json.error.message) || ('HTTP '+res.status));
   }
   return json;
@@ -512,7 +512,7 @@ document.getElementById('login-form').addEventListener('submit', async (e)=>{
     const { token } = await api('/auth/login', { method:'POST', body:{identifier, password} });
     state.token = token;
     const me = await api('/auth/me');
-    if(me.user.role !== 'OWNER'){ throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
+    if(me.user.role !== 'OWNER'){ state.token = null; throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
     state.user = me.user;
     enterApp();
   }catch(err){
