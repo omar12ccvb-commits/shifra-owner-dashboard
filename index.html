@@ -878,7 +878,7 @@ RENDERERS.weeklyReward = async function(el){
     }
 
     if(challenge.status==='COMPLETED'){
-      html+='<div class="card" style="margin-top:18px;border-color:rgba(52,211,153,.35)"><div style="font-size:13px;color:var(--text-dim)">الفائز المعتمد</div><div style="font-size:22px;font-weight:800;margin-top:5px">🏆 '+esc(challenge.winner_note||'تم اعتماد الفائز لهذا الأسبوع')+'</div></div>';
+      html+='<div class="card" style="margin-top:18px;border-color:rgba(52,211,153,.35)"><div style="font-size:13px;color:var(--text-dim)">الفائز المعتمد</div><div style="font-size:22px;font-weight:800;margin-top:5px">🏆 '+esc(challenge.winner_name||'تم اعتماد الفائز لهذا الأسبوع')+'</div><div style="font-size:12px;color:var(--text-faint);margin-top:6px">'+esc(challenge.winner_note||'')+'</div></div>';
     }
   }
 
