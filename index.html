@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>SHIFRA — لوحة المالك</title>
+<title>شفرة — لوحة المالك</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -243,6 +243,108 @@
     .mobile-topbar{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border-soft); }
   }
 </style>
+
+<style id="shefra-premium-ui">
+  :root{
+    --brand-a:#9b7cff;
+    --brand-b:#6d45ff;
+    --brand-c:#38bdf8;
+  }
+  html{scroll-behavior:smooth;color-scheme:dark}
+  body{
+    background-image:
+      radial-gradient(ellipse 760px 480px at 12% -8%,rgba(155,124,255,.17),transparent 62%),
+      radial-gradient(ellipse 700px 460px at 100% 0%,rgba(56,189,248,.08),transparent 68%),
+      linear-gradient(180deg,#08080d 0%,#0b0b11 46%,#09090f 100%);
+    animation:shefraAmbient 16s ease-in-out infinite alternate;
+  }
+  @keyframes shefraAmbient{
+    0%{background-position:0 0,100% 0,0 0}
+    100%{background-position:24px 18px,calc(100% - 18px) 16px,0 0}
+  }
+  .brand-mark{
+    position:relative;overflow:hidden;
+    background:radial-gradient(circle at 28% 22%,rgba(255,255,255,.28),transparent 28%),linear-gradient(145deg,var(--brand-a),var(--brand-b) 55%,#4c1d95);
+    box-shadow:0 8px 28px -8px rgba(139,92,246,.44),inset 0 1px 0 rgba(255,255,255,.18);
+    animation:shefraLogoFloat 4.5s ease-in-out infinite;
+  }
+  .brand-mark::after{
+    content:"";position:absolute;inset:-40% -70%;pointer-events:none;
+    background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.34) 50%,transparent 65%);
+    transform:translateX(-90%);animation:shefraShine 6s ease-in-out infinite;
+  }
+  @keyframes shefraLogoFloat{50%{transform:translateY(-2px) rotate(-1deg)}}
+  @keyframes shefraShine{0%,62%{transform:translateX(-90%)}78%,100%{transform:translateX(90%)}}
+  .brand-text{
+    background:linear-gradient(110deg,#fff 0%,#e9e2ff 48%,#c9edff 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .page-title{
+    background:linear-gradient(110deg,#fff 0%,#e8dcff 48%,#b7e8ff 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .card,.alert-row,.table-wrap,.login-card{
+    transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s ease,box-shadow .25s ease,background-color .25s ease;
+  }
+  .card,.login-card{position:relative;overflow:hidden}
+  .card::before,.login-card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(115deg,rgba(255,255,255,.045),transparent 24%,transparent 75%,rgba(155,124,255,.04));
+  }
+  .card:hover,.alert-row:hover{
+    transform:translateY(-3px);
+    border-color:rgba(155,124,255,.30);
+    box-shadow:0 18px 44px -28px rgba(0,0,0,.95),0 0 0 1px rgba(155,124,255,.05);
+  }
+  .login-card{
+    box-shadow:0 28px 90px -46px rgba(0,0,0,.9),0 0 0 1px rgba(155,124,255,.05);
+  }
+  .btn,.nav-item,.user-avatar{
+    position:relative;overflow:hidden;
+    transition:transform .18s cubic-bezier(.2,.8,.2,1),filter .2s ease,background .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease;
+  }
+  .btn:hover,.nav-item:hover{transform:translateY(-1px)}
+  .btn-primary{
+    background:linear-gradient(110deg,var(--brand-b),#7c3aed 55%,#5b21b6);
+    box-shadow:0 10px 25px -16px rgba(139,92,246,.95),inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .btn-primary:hover{filter:brightness(1.1);box-shadow:0 14px 30px -16px rgba(139,92,246,1),0 0 0 1px rgba(255,255,255,.06)}
+  .btn:focus-visible,.nav-item:focus-visible,.field input:focus,.field select:focus,.field textarea:focus{
+    outline:none;box-shadow:0 0 0 3px rgba(139,92,246,.18),0 0 0 1px rgba(139,92,246,.7)
+  }
+  .nav-item.active{
+    box-shadow:inset 0 0 0 1px rgba(155,124,255,.10),0 8px 20px -18px rgba(155,124,255,.95);
+  }
+  .nav-item.active::after{
+    content:"";position:absolute;inset-inline-start:12px;inset-inline-end:12px;bottom:2px;height:2px;border-radius:999px;
+    background:linear-gradient(90deg,transparent,var(--brand-a),transparent);animation:shefraPulse 2.1s ease-in-out infinite;
+  }
+  @keyframes shefraPulse{50%{opacity:.35;transform:scaleX(.78)}}
+  .table-wrap{box-shadow:0 16px 48px -34px rgba(0,0,0,.9)}
+  tbody tr.clickable{transition:background .18s ease,transform .18s ease,box-shadow .18s ease}
+  tbody tr.clickable:hover{transform:translateX(-2px)}
+  .modal-overlay{backdrop-filter:blur(8px)!important;background:rgba(2,2,8,.64)!important}
+  .modal{background:linear-gradient(180deg,rgba(25,25,34,.97),rgba(17,17,24,.97))!important;box-shadow:0 28px 90px -30px rgba(0,0,0,.96),0 0 0 1px rgba(155,124,255,.07)}
+  #content.ui-refresh > *{animation:shefraRouteIn .48s cubic-bezier(.16,1,.3,1) both}
+  #content.ui-refresh .card,#content.ui-refresh .table-wrap,#content.ui-refresh .alert-row{animation:shefraCardIn .52s cubic-bezier(.16,1,.3,1) both}
+  #content.ui-refresh > *:nth-child(2){animation-delay:.035s}
+  #content.ui-refresh > *:nth-child(3){animation-delay:.07s}
+  #content.ui-refresh > *:nth-child(4){animation-delay:.105s}
+  @keyframes shefraRouteIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes shefraCardIn{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+  .ui-ripple{
+    position:absolute!important;border-radius:999px;pointer-events:none;width:18px;height:18px;
+    transform:translate(-50%,-50%) scale(0);background:rgba(255,255,255,.22);animation:shefraRipple .55s ease-out forwards;
+  }
+  @keyframes shefraRipple{to{transform:translate(-50%,-50%) scale(14);opacity:0}}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#292934;border-radius:999px}
+  ::-webkit-scrollbar-thumb:hover{background:#3a3a49}
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
+  }
+</style>
 </head>
 <body>
 
@@ -251,7 +353,7 @@
     <div class="brand">
       <div class="brand-mark">ش</div>
       <div>
-        <div class="brand-text">SHIFRA</div>
+        <div class="brand-text">شفرة</div>
         <div class="brand-sub">OWNER CONSOLE</div>
       </div>
     </div>
@@ -280,7 +382,7 @@
     <div class="brand">
       <div class="brand-mark">ش</div>
       <div>
-        <div class="brand-text" style="font-size:16px">SHIFRA</div>
+        <div class="brand-text" style="font-size:16px">شفرة</div>
         <div class="brand-sub" style="font-size:10.5px">OWNER CONSOLE</div>
       </div>
     </div>
@@ -300,7 +402,7 @@
 
   <main class="main">
     <div class="mobile-topbar">
-      <div class="brand-text" style="font-size:15px">SHIFRA</div>
+      <div class="brand-text" style="font-size:15px">شفرة</div>
       <div style="display:flex; gap:8px">
         <button class="btn btn-ghost btn-sm" id="change-pw-btn-mobile">🔑</button>
         <button class="btn btn-ghost btn-sm" id="logout-btn-mobile">خروج</button>
@@ -325,7 +427,7 @@
 
 <script>
 /* ============================================================
-   SHIFRA Owner Console — talks to the REAL backend only.
+   شفرة Owner Console — talks to the REAL backend only.
    No cached numbers, no mock data: every view fetches from the
    live API each time it's opened (spec #54 "Database-backed KPIs").
    Session token lives in memory only (not localStorage) — closing
@@ -1213,6 +1315,34 @@ RENDERERS.audit = async (el) => {
       <td class="mono">${fmtDate(a.created_at)}</td>
     </tr>`).join('')}</tbody></table>` : '<div class="empty-state" style="padding:24px">لسه مفيش سجلات</div>'}</div>`;
 };
+</script>
+
+<script id="shefra-premium-motion">
+(() => {
+  const install = () => {
+    const content = document.getElementById('content');
+    if (content) {
+      const pulse = () => {
+        content.classList.remove('ui-refresh');
+        requestAnimationFrame(() => content.classList.add('ui-refresh'));
+      };
+      new MutationObserver(pulse).observe(content,{childList:true});
+    }
+    document.addEventListener('click', (event) => {
+      const target = event.target.closest('button,.btn,.nav-item,.auth-tab,.role-opt,.user-menu-btn');
+      if (!target || target.disabled) return;
+      const rect = target.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      ripple.className = 'ui-ripple';
+      ripple.style.left = ((event.clientX - rect.left) || rect.width/2) + 'px';
+      ripple.style.top = ((event.clientY - rect.top) || rect.height/2) + 'px';
+      target.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    }, {passive:true});
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',install,{once:true});
+  else install();
+})();
 </script>
 </body>
 </html>
