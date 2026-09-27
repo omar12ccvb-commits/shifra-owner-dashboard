@@ -369,7 +369,7 @@
       </div>
       <div class="field">
         <label>عنوان السيرفر (API Base URL)</label>
-        <input type="text" id="login-apibase" class="ltr" value="http://localhost:4000/api">
+        <input type="text" id="login-apibase" class="ltr" value="https://api-production-2964.up.railway.app/api">
         <div class="field-hint">owner accounts only</div>
       </div>
       <button type="submit" class="btn btn-primary" id="login-submit">دخول</button>
@@ -1651,14 +1651,28 @@ RENDERERS.audit = async (el) => {
   const save = () => {
     try {
       const data={};
-      for (const id of ids) { const el=document.getElementById(id); if (el) data[id]=el.value; }
+      for (const id of ids) {
+        const el=document.getElementById(id);
+        if (!el) continue;
+        data[id] = (id === 'login-apibase' && !['localhost','127.0.0.1'].includes(location.hostname))
+          ? 'https://api-production-2964.up.railway.app/api'
+          : el.value;
+      }
       sessionStorage.setItem(FORM_KEY,JSON.stringify(data));
     } catch (_) {}
   };
   const restore = () => {
     try {
       const data=JSON.parse(sessionStorage.getItem(FORM_KEY)||'{}');
-      for (const id of ids) { const el=document.getElementById(id); if (el && data[id]!=null) el.value=data[id]; }
+      for (const id of ids) {
+        const el=document.getElementById(id);
+        if (!el) continue;
+        if (id === 'login-apibase' && !['localhost','127.0.0.1'].includes(location.hostname)) {
+          el.value = 'https://api-production-2964.up.railway.app/api';
+          continue;
+        }
+        if (data[id] != null) el.value=data[id];
+      }
     } catch (_) {}
   };
   const clearSaved=()=>{ try{sessionStorage.removeItem(FORM_KEY);}catch(_){} };
