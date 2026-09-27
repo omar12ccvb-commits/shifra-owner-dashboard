@@ -460,6 +460,7 @@ function enterApp(){
 /* ---------------- Nav / Router ---------------- */
 const NAV = [
   {id:'overview', label:'نظرة عامة', icon:'◆'},
+  {id:'operations', label:'مركز العمليات 30+', icon:'⚙'},
   {id:'conversations', label:'المحادثات', icon:'💬'},
   {id:'payments', label:'إثباتات الدفع', icon:'▤'},
   {id:'projects', label:'المشاريع', icon:'▦'},
@@ -482,6 +483,7 @@ function renderNav(){
 }
 const VIEW_META = {
   overview:{title:'نظرة عامة', sub:'أهم القرارات اللي محتاجة انتباهك دلوقتي'},
+  operations:{title:'مركز العمليات 30+', sub:'أكثر من 30 أداة تشغيلية إضافية لكل من Omar وYoussef'},
   conversations:{title:'المحادثات', sub:'تواصل مباشر مع العملاء داخل كل مشروع'},
   payments:{title:'إثباتات الدفع', sub:'مراجعة وتأكيد مدفوعات Vodafone Cash'},
   projects:{title:'المشاريع', sub:'كل الطلبات بأرقامها SH-####'},
@@ -512,6 +514,108 @@ async function goView(id){
   }
 }
 const RENDERERS = {}; // filled in below, one per view
+
+
+function opCard(icon,label,action,tone){
+  return '<button class="card feature-card '+(tone||'')+'" data-op="'+action+'" style="text-align:start;border:none;width:100%;cursor:pointer"><div style="font-size:18px;margin-bottom:6px">'+icon+'</div><div style="font-weight:700">'+esc(label)+'</div></button>';
+}
+function downloadRowsCsv(filename, rows){
+  if(!rows || !rows.length){ toast('مفيش بيانات للتصدير','err'); return; }
+  var keys=Object.keys(rows[0]);
+  var csv='\\uFEFF'+[keys.join(','), rows.map(function(r){return keys.map(function(k){return '"'+String(r[k]??'').replace(/"/g,'""')+'"';}).join(',');}).join('\\n')].join('\\n');
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=filename; a.click(); setTimeout(function(){URL.revokeObjectURL(url);},500);
+}
+RENDERERS.operations = async function(el){
+  var data=await Promise.all([
+    api('/projects'), api('/payments'), api('/payouts'), api('/complaints'), api('/weekly-cycles/current')
+  ]);
+  var projects=data[0].projects, payments=data[1].payments, payouts=data[2].payouts, complaints=data[3].complaints, cycle=data[4].cycle;
+  var now=Date.now(), terminal=['DELIVERED','CANCELLED','REJECTED','REFUNDED','ELIGIBLE_FOR_SETTLEMENT'];
+  var active=projects.filter(function(p){return terminal.indexOf(p.status)<0;});
+  var overdue=active.filter(function(p){return p.deadline && new Date(p.deadline).getTime()<now;});
+  var soon=active.filter(function(p){return p.deadline && new Date(p.deadline).getTime()>=now && new Date(p.deadline).getTime()<now+48*3600*1000;});
+  var pendingProofs=payments.filter(function(p){return p.status==='PROOF_SUBMITTED';});
+  var confirmedPayments=payments.filter(function(p){return p.status==='CONFIRMED';});
+  var readyPayouts=payouts.filter(function(p){return ['READY','PENDING'].indexOf(p.status)>=0;});
+  var paidPayouts=payouts.filter(function(p){return p.status==='PAID';});
+  var failedPayouts=payouts.filter(function(p){return p.status==='FAILED';});
+  var openComplaints=complaints.filter(function(c){return c.status==='OPEN';});
+  var reviewComplaints=complaints.filter(function(c){return c.status==='IN_REVIEW';});
+  var common=[
+    opCard('💳','طابور إثباتات الدفع ('+pendingProofs.length+')','pending-payments','warn'),
+    opCard('✅','المدفوعات المؤكدة ('+confirmedPayments.length+')','confirmed-payments','ok'),
+    opCard('📦','المشاريع النشطة ('+active.length+')','active-projects'),
+    opCard('🚨','المشاريع المتأخرة ('+overdue.length+')','overdue-projects','warn'),
+    opCard('⏰','المشاريع خلال 48 ساعة ('+soon.length+')','deadline-48'),
+    opCard('⚠️','الشكاوى المفتوحة ('+openComplaints.length+')','open-complaints','warn'),
+    opCard('🧐','الشكاوى قيد المراجعة ('+reviewComplaints.length+')','review-complaints'),
+    opCard('💰','المستحقات الجاهزة ('+readyPayouts.length+')','ready-payouts'),
+    opCard('💸','المستحقات المدفوعة ('+paidPayouts.length+')','paid-payouts','ok'),
+    opCard('❌','المستحقات الفاشلة ('+failedPayouts.length+')','failed-payouts','warn'),
+    opCard('💬','كل المحادثات','conversations'),
+    opCard('👥','كل المشاريع','projects'),
+    opCard('🧾','سجل التدقيق','audit'),
+    opCard('📚','Ledger','ledger'),
+    opCard('🗓️','الدورة الأسبوعية','weekly'),
+    opCard('🔁','توزيع الأرباح','profitsplit'),
+    opCard('❤️','فحص API','health'),
+    opCard('🔄','تحديث البيانات','refresh'),
+    opCard('📊','إجمالي المدفوع المؤكد','payment-total'),
+    opCard('💵','إجمالي المستحقات','payout-total'),
+    opCard('⇩','تصدير المشاريع','export-projects'),
+    opCard('⇩','تصدير المدفوعات','export-payments')
+  ];
+  var role=[];
+  if(state.user.ownerKey==='OMAR'){
+    role=[
+      opCard('👤','إدارة حساب يوسف','youssef'),
+      opCard('🧠','مركز الأرباح والنسب','profitsplit'),
+      opCard('🧮','مطابقة الدورة','reconciliation'),
+      opCard('⚙️','توليد مستحقات الدورة الحالية','generate-payouts'),
+      opCard('🛡️','الأمان والحساب','security'),
+      opCard('⇩','تصدير Ledger','export-ledger'),
+      opCard('⇩','تصدير الشكاوى','export-complaints'),
+      opCard('⇩','تصدير سجل التدقيق','export-audit')
+    ];
+  } else {
+    role=[
+      opCard('🔎','الدفع المطلوب مراجعته','pending-payments'),
+      opCard('✅','مراجعة واعتماد الدفع','pending-payments'),
+      opCard('↩️','رفض إثبات الدفع مع سبب','pending-payments'),
+      opCard('💸','قائمة المستحقات الجاهزة للصرف','ready-payouts'),
+      opCard('✅','تأكيد التحويلات','ready-payouts'),
+      opCard('❌','تسجيل فشل التحويل','ready-payouts'),
+      opCard('🧰','الشكاوى والتصعيد','open-complaints'),
+      opCard('🔐','الأمان وتغيير كلمة المرور','security')
+    ];
+  }
+  el.innerHTML='<div class="card" style="margin-bottom:16px"><div class="kv"><span class="k">الحساب</span><span class="v">'+esc(state.user.fullName)+' · '+esc(state.user.ownerKey)+'</span></div><div class="kv"><span class="k">الدورة</span><span class="v mono">'+fmtDay(cycle.cycle_start)+' → '+fmtDay(cycle.cycle_end)+'</span></div></div><div class="section-title">أدوات مشتركة</div><div class="grid grid-4">'+common.join('')+'</div><div class="section-title" style="margin-top:22px">'+(state.user.ownerKey==='OMAR'?'أدوات Omar':'أدوات Youssef')+'</div><div class="grid grid-4">'+role.join('')+'</div>';
+  el.querySelectorAll('[data-op]').forEach(function(btn){
+    btn.addEventListener('click',async function(){
+      var a=btn.dataset.op;
+      if(a==='refresh'){return goView('operations');}
+      if(['pending-payments','confirmed-payments'].indexOf(a)>=0)return goView('payments');
+      if(['active-projects','overdue-projects','deadline-48'].indexOf(a)>=0)return goView('projects');
+      if(['open-complaints','review-complaints'].indexOf(a)>=0)return goView('complaints');
+      if(['ready-payouts','paid-payouts','failed-payouts'].indexOf(a)>=0)return goView('payouts');
+      if(['conversations','projects','audit','ledger','profitsplit','weekly','youssef','security'].indexOf(a)>=0)return goView(a==='youssef'?'youssef':a);
+      if(a==='health'){try{await api('/health');toast('API تعمل بشكل طبيعي','ok');}catch(e){toast('فحص API فشل','err');}}
+      if(a==='payment-total'){var s=confirmedPayments.reduce(function(x,p){return x+Number(p.expected_amount_minor||0);},0);modal('<h3>إجمالي المدفوعات المؤكدة</h3><div class="price-hero"><div class="amt">'+money(s)+' EGP</div></div>');}
+      if(a==='payout-total'){var q=payouts.reduce(function(x,p){return x+Number(p.total_amount_minor||0);},0);modal('<h3>إجمالي المستحقات المسجلة</h3><div class="price-hero"><div class="amt">'+money(q)+' EGP</div></div>');}
+      if(a==='reconciliation')return goView('weekly');
+      if(a==='generate-payouts'){
+        modal('<h3>توليد مستحقات الدورة الحالية</h3><p style="color:var(--text-dim);font-size:13px">سيتم إنشاء المستحقات الناقصة فقط، مع حماية من التكرار.</p><div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">إلغاء</button><button class="btn btn-primary" id="generate-now">تأكيد</button></div>');
+        document.getElementById('generate-now').addEventListener('click',async function(){try{await api('/payouts/generate',{method:'POST',body:{weeklyCycleId:cycle.id}});closeModal();toast('تم توليد المستحقات','ok');goView('payouts');}catch(e){toast(e.message,'err');}});
+      }
+      if(a==='export-projects')downloadRowsCsv('shifra-projects.csv',projects);
+      if(a==='export-payments')downloadRowsCsv('shifra-payments.csv',payments);
+      if(a==='export-ledger'){try{var l=await api('/ledger/entries');downloadRowsCsv('shifra-ledger.csv',l.entries);}catch(e){toast(e.message,'err');}}
+      if(a==='export-complaints')downloadRowsCsv('shifra-complaints.csv',complaints);
+      if(a==='export-audit'){try{var au=await api('/audit-logs');downloadRowsCsv('shifra-audit.csv',au.auditLogs);}catch(e){toast(e.message,'err');}}
+    });
+  });
+};
 
 /* ================= OVERVIEW ================= */
 RENDERERS.overview = async (el) => {
