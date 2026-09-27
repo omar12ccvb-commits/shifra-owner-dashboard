@@ -430,16 +430,16 @@
    the tab requires logging back in, which is the right trade-off
    for a console that can confirm real money movements.
    ============================================================ */
-const state = { token:null, user:null, apiBase:'/api', view:'overview', cache:{} };
+const state = { token:null, user:null, apiBase:'https://api-production-2964.up.railway.app/api', view:'overview', cache:{} };
 
 // Same smart default as the main app: deployed anywhere other than localhost,
 // assume /api lives on this same origin (nginx reverse-proxy setup) -- still
 // a plain editable field either way.
-(function setSmartApiDefault(){
+(function setApiDefault(){
   const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
-  const guess = isLocal ? 'http://localhost:4000/api' : '/api';
-  state.apiBase = '/api';
-  const apiInput=document.getElementById('login-apibase'); if(apiInput) apiInput.value='/api';
+  state.apiBase = isLocal ? 'http://localhost:4000/api' : 'https://api-production-2964.up.railway.app/api';
+  const apiInput=document.getElementById('login-apibase');
+  if (apiInput) apiInput.value = state.apiBase;
 })();
 
 function toast(msg, kind){
@@ -451,7 +451,7 @@ function toast(msg, kind){
 }
 
 async function api(path, opts={}){
-  const res = await fetch('/api' + path, {
+  const res = await fetch(state.apiBase + path, {
     method: opts.method || 'GET',
     headers: Object.assign(
       {'Content-Type':'application/json','Cache-Control':'no-store','Pragma':'no-cache'},
@@ -498,7 +498,7 @@ document.getElementById('login-form').addEventListener('submit', async (e)=>{
   const btn = document.getElementById('login-submit');
   const errBox = document.getElementById('login-error');
   errBox.style.display = 'none';
-  state.apiBase = '/api';
+  state.apiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'http://localhost:4000/api' : 'https://api-production-2964.up.railway.app/api';
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try{
     const identifier = document.getElementById('login-identifier').value.trim();
