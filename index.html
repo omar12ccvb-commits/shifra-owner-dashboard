@@ -434,7 +434,7 @@
    the tab requires logging back in, which is the right trade-off
    for a console that can confirm real money movements.
    ============================================================ */
-const state = { token:null, user:null, apiBase:'http://localhost:4000/api', view:'overview', cache:{} };
+const state = { token:null, user:null, apiBase:'https://api-production-2964.up.railway.app/api', view:'overview', cache:{} };
 
 // Same smart default as the main app: deployed anywhere other than localhost,
 // assume /api lives on this same origin (nginx reverse-proxy setup) -- still
@@ -503,11 +503,11 @@ document.getElementById('login-form').addEventListener('submit', async (e)=>{
   try{
     const identifier = document.getElementById('login-identifier').value.trim();
     const password = document.getElementById('login-password').value;
-    const { token } = await api('/auth/login', { method:'POST', body:{identifier, password} });
-    state.token = token;
-    const me = await api('/auth/me');
-    if(me.user.role !== 'OWNER'){ throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
-    state.user = me.user;
+    const result = await api('/auth/login', { method:'POST', body:{identifier, password} });
+    if(!result.token || !result.user) throw new Error('السيرفر لم يُرجع بيانات جلسة صحيحة');
+    if(result.user.role !== 'OWNER'){ throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
+    state.token = result.token;
+    state.user = result.user;
     enterApp();
   }catch(err){
     errBox.textContent = err.message; errBox.style.display = 'block';
