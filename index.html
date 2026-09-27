@@ -463,6 +463,7 @@ const NAV = [
   {id:'conversations', label:'المحادثات', icon:'💬'},
   {id:'payments', label:'إثباتات الدفع', icon:'▤'},
   {id:'projects', label:'المشاريع', icon:'▦'},
+  {id:'complaints', label:'الشكاوى', icon:'⚠'},
   {id:'ledger', label:'الحسابات (Ledger)', icon:'≡'},
   {id:'payouts', label:'المستحقات (Payouts)', icon:'⇄'},
   {id:'profitsplit', label:'توزيع الأرباح', icon:'%'},
@@ -484,6 +485,7 @@ const VIEW_META = {
   conversations:{title:'المحادثات', sub:'تواصل مباشر مع العملاء داخل كل مشروع'},
   payments:{title:'إثباتات الدفع', sub:'مراجعة وتأكيد مدفوعات Vodafone Cash'},
   projects:{title:'المشاريع', sub:'كل الطلبات بأرقامها SH-####'},
+  complaints:{title:'الشكاوى', sub:'مراجعة شكاوى العملاء واتخاذ الإجراء'},
   ledger:{title:'الحسابات (Ledger)', sub:'أرصدة حقيقية من القيود المزدوجة، مش أرقام مخزّنة'},
   payouts:{title:'المستحقات (Payouts)', sub:'صرف مستحقات المسوقين والمحررين والملّاك'},
   profitsplit:{title:'توزيع الأرباح', sub:'النسب الحالية والتاريخ'},
@@ -756,6 +758,67 @@ RENDERERS.payments = async (el) => {
       try { await api(`/payments/${btn.dataset.reject}/reject`, {method:'POST', body:{reason}}); closeModal(); toast('تم رفض الإثبات','ok'); RENDERERS.payments(el); }
       catch(err){ toast(err.message,'err'); }
     });
+  }));
+};
+
+/* ================= COMPLAINTS ================= */
+RENDERERS.complaints = async (el) => {
+  const { complaints } = await api('/complaints');
+  const statusLabel = s => ({OPEN:'مفتوحة',IN_REVIEW:'قيد المراجعة',RESOLVED:'تم الحل',REJECTED:'مرفوضة'}[s] || s);
+  const catLabel = s => ({COMMUNICATION:'تواصل',DELAY:'تأخير',MISLEADING:'معلومات مضللة',QUALITY:'جودة',PAYMENT:'دفع',BEHAVIOR:'سلوك',OTHER:'أخرى'}[s] || s);
+
+  if (!complaints.length) {
+    el.innerHTML = '<div class="empty-state"><div class="ic">✓</div>مفيش شكاوى حالياً.</div>';
+    return;
+  }
+
+  el.innerHTML = complaints.map(c => \`
+    <div class="card" style="margin-bottom:12px">
+      <div class="list-card-top">
+        <span class="mono">\${esc(c.order_number)}</span>
+        <span class="badge \${c.status==='RESOLVED'?'badge-green':c.status==='REJECTED'?'badge-red':c.status==='IN_REVIEW'?'badge-blue':'badge-amber'}">\${statusLabel(c.status)}</span>
+      </div>
+      <div class="kv"><span class="k">العميل</span><span class="v">\${esc(c.customer_name)}</span></div>
+      <div class="kv"><span class="k">الشكوى على</span><span class="v">\${esc(c.target_name)} · \${esc(c.target_role)}</span></div>
+      <div class="kv"><span class="k">النوع</span><span class="v">\${catLabel(c.category)}</span></div>
+      <div style="margin-top:10px;padding:10px;background:var(--bg-elev-2);border-radius:8px;white-space:pre-wrap">\${esc(c.description)}</div>
+      \${c.resolution_note ? \`<div style="margin-top:9px;color:var(--text-dim);font-size:12px">ملاحظة الإدارة: \${esc(c.resolution_note)}</div>\` : ''}
+      \${!['RESOLVED','REJECTED'].includes(c.status) ? \`
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-ghost btn-sm" data-complaint-action="\${c.id}" data-status="IN_REVIEW">قيد المراجعة</button>
+          <button class="btn btn-primary btn-sm" data-complaint-action="\${c.id}" data-status="RESOLVED">حل الشكوى</button>
+          <button class="btn btn-danger btn-sm" data-complaint-action="\${c.id}" data-status="REJECTED">رفض</button>
+        </div>
+      \` : ''}
+    </div>
+  \`).join('');
+
+  el.querySelectorAll('[data-complaint-action]').forEach(btn => btn.addEventListener('click', async () => {
+    const id = btn.dataset.complaintAction;
+    const status = btn.dataset.status;
+
+    if (status === 'RESOLVED' || status === 'REJECTED') {
+      modal(\`<h3>\${status==='RESOLVED'?'حل الشكوى':'رفض الشكوى'}</h3>
+        <div class="field"><label>ملاحظة الإدارة</label><textarea id="complaint-resolution-note" rows="3" placeholder="اكتب ماذا تم..."></textarea></div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" onclick="closeModal()">إلغاء</button>
+          <button class="btn \${status==='RESOLVED'?'btn-primary':'btn-danger'}" id="save-complaint-status">تأكيد</button>
+        </div>\`);
+      document.getElementById('save-complaint-status').addEventListener('click', async () => {
+        try {
+          await api(\`/complaints/\${id}/status\`, {
+            method:'POST',
+            body:{status, resolutionNote:document.getElementById('complaint-resolution-note').value.trim()}
+          });
+          closeModal(); toast('تم تحديث الشكوى','ok'); RENDERERS.complaints(el);
+        } catch(err){ toast(err.message,'err'); }
+      });
+    } else {
+      try {
+        await api(\`/complaints/\${id}/status\`, {method:'POST', body:{status, resolutionNote:'بدأت المراجعة'}});
+        toast('اتحولت لقيد المراجعة','ok'); RENDERERS.complaints(el);
+      } catch(err){ toast(err.message,'err'); }
+    }
   }));
 };
 
