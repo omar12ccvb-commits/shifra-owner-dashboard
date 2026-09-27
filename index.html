@@ -369,7 +369,7 @@
       </div>
       <div class="field">
         <label>عنوان السيرفر (API Base URL)</label>
-        <input type="text" id="login-apibase" class="ltr" value="https://api-production-2964.up.railway.app/api">
+        <input type="text" id="login-apibase" class="ltr" value="http://localhost:4000/api">
         <div class="field-hint">owner accounts only</div>
       </div>
       <button type="submit" class="btn btn-primary" id="login-submit">دخول</button>
@@ -434,7 +434,7 @@
    the tab requires logging back in, which is the right trade-off
    for a console that can confirm real money movements.
    ============================================================ */
-const state = { token:null, user:null, apiBase:'https://api-production-2964.up.railway.app/api', view:'overview', cache:{} };
+const state = { token:null, user:null, apiBase:'http://localhost:4000/api', view:'overview', cache:{} };
 
 // Same smart default as the main app: deployed anywhere other than localhost,
 // assume /api lives on this same origin (nginx reverse-proxy setup) -- still
@@ -443,8 +443,7 @@ const state = { token:null, user:null, apiBase:'https://api-production-2964.up.r
   const isLocal = ['localhost','127.0.0.1'].includes(location.hostname) || location.protocol === 'file:';
   const guess = isLocal ? 'http://localhost:4000/api' : 'https://api-production-2964.up.railway.app/api';
   state.apiBase = guess;
-  const apiInput = document.getElementById('login-apibase');
-  if (apiInput) apiInput.value = guess;
+  document.getElementById('login-apibase').value = guess;
 })();
 
 function toast(msg, kind){
@@ -456,22 +455,16 @@ function toast(msg, kind){
 }
 
 async function api(path, opts={}){
-  const method = opts.method || 'GET';
-  const headers = Object.assign(
-    {'Content-Type':'application/json','Cache-Control':'no-cache','Pragma':'no-cache'},
-    state.token ? {Authorization:'Bearer '+state.token} : {}
-  );
   const res = await fetch(state.apiBase + path, {
-    method,
-    headers,
-    cache:'no-store',
+    method: opts.method || 'GET',
+    headers: Object.assign({'Content-Type':'application/json'}, state.token ? {Authorization:'Bearer '+state.token} : {}),
     body: opts.body ? JSON.stringify(opts.body) : undefined,
-  }).catch(()=>{ throw new Error('تعذر الوصول للسيرفر — تأكد إن الباك إند شغال على '+state.apiBase); });
+  }).catch(()=>{ throw new Error('تعذر الوصول للسيرفر — تأكد إن الباك إند شغال على ' + state.apiBase); });
   let json = {};
   try { json = await res.json(); } catch(e) {}
   if(!res.ok){
-    if(res.status===401 && state.token) doLogout();
-    throw new Error((json.error && json.error.message) || ('HTTP '+res.status));
+    if(res.status === 401){ doLogout(); }
+    throw new Error((json.error && json.error.message) || ('HTTP ' + res.status));
   }
   return json;
 }
@@ -505,10 +498,7 @@ document.getElementById('login-form').addEventListener('submit', async (e)=>{
   const btn = document.getElementById('login-submit');
   const errBox = document.getElementById('login-error');
   errBox.style.display = 'none';
-  const typedApi = document.getElementById('login-apibase').value.trim().replace(/\/$/,'');
-  const isDeployed = !['localhost','127.0.0.1'].includes(location.hostname) && location.protocol !== 'file:';
-  state.apiBase = isDeployed ? 'https://api-production-2964.up.railway.app/api' : typedApi;
-  if (isDeployed) document.getElementById('login-apibase').value = state.apiBase;
+  state.apiBase = document.getElementById('login-apibase').value.trim().replace(/\/$/,'');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try{
     const identifier = document.getElementById('login-identifier').value.trim();
@@ -516,7 +506,7 @@ document.getElementById('login-form').addEventListener('submit', async (e)=>{
     const { token } = await api('/auth/login', { method:'POST', body:{identifier, password} });
     state.token = token;
     const me = await api('/auth/me');
-    if(me.user.role !== 'OWNER'){ state.token = null; throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
+    if(me.user.role !== 'OWNER'){ throw new Error('هذه اللوحة لأصحاب الحساب (Omar/Youssef) فقط'); }
     state.user = me.user;
     enterApp();
   }catch(err){
@@ -527,7 +517,6 @@ document.getElementById('login-form').addEventListener('submit', async (e)=>{
 });
 
 function doLogout(){
-  try{ sessionStorage.removeItem('shifra_owner_auth_token_v2'); sessionStorage.removeItem('shifra_owner_auth_form'); }catch(_){}
   state.token = null; state.user = null;
   document.getElementById('app-shell').classList.remove('active');
   document.getElementById('login-screen').style.display = 'flex';
@@ -1647,6 +1636,5 @@ RENDERERS.audit = async (el) => {
   else install();
 })();
 </script>
-
 </body>
 </html>
