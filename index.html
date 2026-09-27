@@ -795,23 +795,56 @@ RENDERERS.projects = async (el) => {
 };
 
 async function renderProjectDetail(el, id) {
-  const [{project}, priceRes, earningsRes, paymentsRes] = await Promise.all([
-    api(`/projects/${id}`), api(`/projects/${id}/price-agreements`), api(`/projects/${id}/earnings`), api(`/projects/${id}/payments`),
+  const [{project}, priceRes, earningsRes, paymentsRes, editorsRes] = await Promise.all([
+    api(`/projects/${id}`),
+    api(`/projects/${id}/price-agreements`),
+    api(`/projects/${id}/earnings`),
+    api(`/projects/${id}/payments`),
+    api('/editors'),
   ]);
+
+  const canAssignEditor = ['PAYMENT_CONFIRMED'].includes(project.status);
+  const assignedEditor = project.editor_name || null;
+
   el.innerHTML = `
     <a class="backlink" href="#" id="back-to-list">‹ رجوع لكل المشاريع</a>
+
     <div class="grid grid-2" style="align-items:start">
       <div class="card">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
           <span class="mono" style="font-size:17px; font-weight:700">${esc(project.order_number)}</span>
           ${badge(project.status)}
         </div>
+        <div class="kv"><span class="k">العميل</span><span class="v">${esc(project.customer_name || '—')}</span></div>
+        <div class="kv"><span class="k">المسوّق</span><span class="v">${esc(project.marketer_name || '—')}</span></div>
+        <div class="kv"><span class="k">المحرر الحالي</span><span class="v">${esc(assignedEditor || 'لسه ماتعيّنش')}</span></div>
         <div class="kv"><span class="k">الكمية</span><span class="v mono">${esc(project.quantity)}</span></div>
         <div class="kv"><span class="k">المدة</span><span class="v mono">${project.duration_seconds ? project.duration_seconds+'s' : '—'}</span></div>
         <div class="kv"><span class="k">الديدلاين</span><span class="v mono">${project.deadline ? fmtDate(project.deadline) : '—'}</span></div>
         <div class="kv"><span class="k">آخر تحديث</span><span class="v mono">${fmtDate(project.updated_at)}</span></div>
         <div class="kv"><span class="k">ملاحظات</span><span class="v">${esc(project.notes || '—')}</span></div>
       </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-top:0">تعيين المحرر</div>
+        ${canAssignEditor ? `
+          <div class="field">
+            <label>اختار المحرر</label>
+            <select id="assign-editor-select">
+              <option value="">اختار...</option>
+              ${editorsRes.editors.map(e => `<option value="${e.id}">${esc(e.full_name)}${e.specialty ? ' · '+esc(e.specialty) : ''}</option>`).join('')}
+            </select>
+          </div>
+          <button class="btn btn-primary" id="assign-editor-btn">تعيين المحرر وبدء المهمة</button>
+          ${editorsRes.editors.length ? '' : '<div class="empty-state" style="padding:18px">مفيش محررين مسجلين لسه.</div>'}
+        ` : `
+          <div class="kv"><span class="k">الحالة الحالية</span><span class="v">${badge(project.status)}</span></div>
+          <div style="font-size:12.5px;color:var(--text-faint);margin-top:10px">
+            تعيين المحرر يفتح بعد تأكيد الدفع. لو الدفع اتأكد، ارجع هنا وهتلاقي الاختيار ظاهر.
+          </div>
+        `}
+      </div>
+
       <div class="card">
         <div class="section-title" style="margin-top:0">تاريخ السعر (versions)</div>
         ${priceRes.priceAgreements.length ? priceRes.priceAgreements.map(a => `
@@ -820,16 +853,40 @@ async function renderProjectDetail(el, id) {
         `).join('') : '<div class="empty-state" style="padding:20px">لسه مفيش سعر مقترح</div>'}
       </div>
     </div>
+
     <div class="section-title">المدفوعات</div>
     <div class="table-wrap">${paymentsRes.payments.length ? `<table><thead><tr><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>تاريخ</th></tr></thead>
       <tbody>${paymentsRes.payments.map(p=>`<tr><td class="mono">${money(p.expected_amount_minor)} ${esc(p.currency)}</td><td>${esc(p.method)}</td><td>${badge(p.status)}</td><td class="mono">${fmtDate(p.created_at)}</td></tr>`).join('')}</tbody></table>`
       : '<div class="empty-state" style="padding:24px">لسه مفيش مدفوعات</div>'}</div>
+
     <div class="section-title">الأرباح الموزّعة (Earnings)</div>
     <div class="table-wrap">${earningsRes.earnings.length ? `<table><thead><tr><th>المستفيد</th><th>المبلغ</th><th>مؤهل من</th></tr></thead>
       <tbody>${earningsRes.earnings.map(e=>`<tr><td>${esc(e.recipient_type)}</td><td class="mono">${money(e.amount_minor)} EGP</td><td class="mono">${fmtDate(e.eligible_at)}</td></tr>`).join('')}</tbody></table>`
       : '<div class="empty-state" style="padding:24px">لسه المشروع مامعملش Settle</div>'}</div>
   `;
-  document.getElementById('back-to-list').addEventListener('click', (e)=>{ e.preventDefault(); delete el.dataset.detail; RENDERERS.projects(el); });
+
+  document.getElementById('back-to-list').addEventListener('click', (e)=>{
+    e.preventDefault();
+    delete el.dataset.detail;
+    RENDERERS.projects(el);
+  });
+
+  const assignBtn = document.getElementById('assign-editor-btn');
+  if (assignBtn) {
+    assignBtn.addEventListener('click', async ()=>{
+      const editorId = Number(document.getElementById('assign-editor-select').value);
+      if (!editorId) { toast('اختار محرر الأول','err'); return; }
+      assignBtn.disabled = true;
+      try {
+        await api(`/projects/${id}/assign-editor`, {method:'POST', body:{editorId}});
+        toast('تم تعيين المحرر وفتح المهمة له','ok');
+        RENDERERS.projects(el);
+      } catch(err) {
+        toast(err.message,'err');
+        assignBtn.disabled = false;
+      }
+    });
+  }
 }
 
 /* ================= LEDGER ================= */
